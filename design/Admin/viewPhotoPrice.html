@@ -1,0 +1,188 @@
+<html>
+
+<head>
+    <title>Digital Photography System</title>
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css">
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.4.1/jquery.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.14.7/umd/popper.min.js"></script>
+    <script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.3.1/js/bootstrap.min.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
+    <style>
+        body {
+            background-color: rgb(0, 0, 0, 0);
+        }
+
+        .tablecss {
+            font-family: "Trebuchet MS", Arial, Helvetica, sans-serif;
+            border-collapse: collapse;
+            width: 50%;
+        }
+
+        .tablecss td,
+        .tablecss th {
+            border: 1px solid #ddd;
+            padding: 4px;
+        }
+
+        .tablecss tr {
+            background-color: #f2f2f2;
+        }
+
+        .tablecss th {
+            padding-top: 12px;
+            padding-bottom: 12px;
+            text-align: center;
+            background-color: lavender;
+            color: black;
+            font-weight: bold;
+        }
+    </style>
+</head>
+
+<body onload="loadData()">
+    <center>
+        <table id="table" class="tablecss" style="width:50%;"></table>
+    </center>
+    <div class="modal fade" id="myModal" role="dialog">
+        <div class="modal-dialog modal-md">
+            <div class="modal-content" style="background-color:rgb(236, 221, 221)">
+                <div class="modal-header" style="background-color:rgb(255, 125, 125)">
+                    <center>
+                        <h4>Photo Price Details</h4>
+                    </center>
+                    <button type="button" style="background-color:white" class="close"
+                        data-dismiss="modal">&times;</button>
+                </div>
+                <div class="modal-body">
+                    <div class="row">
+                        <div class="col-md-2"></div>
+                        <div class="col-md-2">
+                            <div class="col-md-4"><input type="hidden" name="id" id="id" class="form-control" required>
+                            </div>
+                            <div class="col-md-4"></div>
+                        </div><br>
+                    </div>
+                    <div class="row">
+                        <div class="col-sm-1"></div>
+                        <div class="col-sm-3">
+                        </div>
+                        <div class="col-sm-3">
+                            <label for="">PhotoSize</label><input type="text" name="photoSize" id="photoSize"
+                                class="form-control" placeholder="enter lastname" required>
+                        </div>
+                        <div class="col-sm-3"> <label for="">Price</label><input type="text" name="price" id="price"
+                                class="form-control" placeholder="" required></div>
+                    </div><br>
+                    <div class="row">
+                        <div class="col-sm-3"></div>
+                        <div class="col-sm-2"><input type="button" id="btnadd" onclick="Update(event)"
+                                data-dismiss="modal" class="btn btn-success" value="Update" /></div>&nbsp;
+                        <div class="col-sm-2"><button type="button" style="display: none;" id="cancel"
+                                onclick="cancel()" class="btn btn-success">Reset</button></div>
+                        <div class="col-sm-3"></div>
+                    </div><br>
+                </div>
+            </div>
+        </div>
+    </div>
+
+</body>
+
+<script>
+    function performAjax(httpMethod, url, params) {
+        const myPromise = new Promise((resolve, reject) => {
+            var xhttp = new XMLHttpRequest();
+            xhttp.onreadystatechange = function () {
+                if (this.readyState == 4 && this.status == 200) {
+                    resolve(JSON.parse(this.responseText));
+                }
+                if (this.status == 500) {
+                    reject({ error: true, message: "ServerError" });
+                }
+                if (this.status == 404) {
+                    reject({ error: true, message: "Resource not found" });
+                }
+            };
+            xhttp.open(httpMethod, url, true);
+            xhttp.setRequestHeader("Content-Type", "application/json");
+            params ? xhttp.send(params) : xhttp.send();
+        });
+        return myPromise;
+    }
+
+    function loadData() {
+        const getPromise = performAjax("GET", "http://localhost:1234/Admin/photoSizesDetails");
+        getPromise
+            .then((photosizeList) => {
+                loadPhotoSizeData(photosizeList);
+            })
+            .catch(err => {
+                alert(err.message);
+            })
+    }
+    function loadPhotoSizeData(records) {
+        const tableHeader = `<tr><th>Sno</th><th>PhotoSize</th><th style="height:20%;text-align:center">Price</th><th>Actions</th></tr>`;
+        if (records.length > 0) {
+            let tableRows = records.map((user, index) => {
+                let editButton = `<a class="fa fa-edit" id="${user._id}"   style="color:blue; font-size:22px;" onclick="editRecords(event)" data-toggle="modal" data-target="#myModal"></a>`;
+                let deleteFile = `<a  class="fa fa-trash" id="${user._id}"   style="color:blue; font-size:22px;" onclick="deleteFile(event)"></a>`;
+                return `<tr><td>${index + 1}</td><td>${user.photoSize}</td><td>${user.price}</td><td>${editButton}&nbsp;&nbsp;&nbsp${deleteFile}</td></tr>`;
+            });
+            document.getElementById("table").innerHTML = `<table  border="2"> ${tableHeader}${tableRows.join('')}</table>`;
+        }
+        else {
+            tableRows = `<tr><td colspan="18" align="center">No Data Found</td></tr>`;
+            document.getElementById("table").innerHTML = `${tableHeader}${tableRows}`;
+        }
+    }
+
+
+    function editRecords(event) {
+        event.preventDefault();
+        const getPromise = performAjax("GET", `http://localhost:1234/Admin/editPhotoPrice/${event.target.id}`);
+        getPromise
+            .then((data) => {
+                const users = JSON.parse(JSON.stringify(data));
+                [users].map(editRecord => {
+                    document.getElementById("id").value = editRecord._id;
+                    document.getElementById("photoSize").value = editRecord.photoSize;
+                    document.getElementById("price").value = editRecord.price;
+                })
+
+            })
+            .catch(err => {
+                alert(err.message);
+            })
+    }
+    function Update() {
+        const id = document.getElementById("id").value;
+        const photoSize = document.getElementById("photoSize").value;
+        const price = document.getElementById("price").value;
+        const getPromise = performAjax(
+            "PUT",
+            `http://localhost:1234/Admin/updatePhotoPrice/${id}`,
+            JSON.stringify({ photoSize, price })
+        );
+        getPromise
+            .then((Promise) => {
+                loadData();
+                alert('Update Successfully');
+            })
+            .catch(err => {
+                alert(err.message);
+            })
+    }
+    function deleteFile(event) {
+        event.preventDefault();
+        const deletePromise = performAjax("DELETE", `http://localhost:1234/Admin/delelePhotoPrice/${event.target.id}`);
+        deletePromise
+            .then((remaininglist) => {
+                loadData();
+            })
+            .catch(err => {
+                alert(err.message);
+            })
+    }
+</script>
+
+</html>

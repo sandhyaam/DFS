@@ -1,0 +1,193 @@
+<html>
+
+<head>
+    <title>Payments Page</title>
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css">
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.4.1/jquery.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.14.7/umd/popper.min.js"></script>
+    <script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.3.1/js/bootstrap.min.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
+    <title>payments page</title>
+    <style>
+        body {
+            background-color: rgb(0, 0, 0, 0);
+        }
+
+        .button {
+            width: 80%;
+            margin-left: 10%;
+            border-radius: 50%;
+            border-radius: 20px;
+            background-color: white;
+            color: #3498DB;
+            border: 2px solid #3498DB;
+        }
+
+        .button:hover {
+            background-color: #3498DB;
+            border: 2px solid #3498DB;
+        }
+
+        .input {
+            border: none;
+            border-bottom: 2px solid #E5E7E9;
+            border-radius: 0px;
+            background: transparent;
+            color: red;
+        }
+
+        .input:focus {
+            border-bottom: 2px solid #3498DB;
+            color: white;
+            background: transparent;
+        }
+
+        .form-control:focus {
+            box-shadow: none;
+        }
+
+        .header {
+            text-align: center;
+        
+            padding: 20px;
+            font-family: 'Times New Roman', Times, serif;
+            color: #4A235A;
+
+        }
+
+        h5,
+        h6 {
+            color:black;
+        }
+    </style>
+
+</head>
+
+<body onload="getAmount()" class="container">
+    <div class="row">
+        <div class="col-sm-4"></div>
+        <div class="col-sm-4">
+            <div class="header">
+                <h1>Payment</h1>
+            </div><br>
+            <div class="row">
+                <div class="col col-sm-12">
+                    <h5>Amount</h5>
+                </div>
+            </div>
+            <div class="row">
+                <div class="col col-sm-12"><input class="form-control input" disabled="false" id="totalAmount"></div>
+            </div><br>
+            <div class="row">
+                <div class="col col-sm-3">
+                    <h6>cardType</h6>
+                </div>
+                <div class="col col-sm-2">
+                    <input type="radio" name="cardtype" id="debit" value="Debit">
+                </div>
+                <div class="col col-sm-3">
+                    <h6>Debit Card</h6>
+                </div>
+                <div class="col col-sm-2">
+                    <input type="radio" name="cardtype" id="credit" value="Credit">
+                </div>
+                <div class="col col-sm-2">
+                    <h6>Credit Card</h6>
+                </div>
+            </div><br>
+            <div class="row">
+                <div class="col col-sm-12">
+                    <h6>Holder Name</h6>
+                    <input class="form-control input" id="cardHolderName">
+                </div>
+            </div><br>
+            <div class="row">
+                <div class="col col-sm-12">
+                    <h6>Card No.</h6>
+                </div>
+            </div>
+            <div class="row">
+                <div class="col col-sm-12"><input class="form-control input" id="cardNumber"
+                        placeholder="xxxx xxxx xxxx"></div>
+            </div><br>
+            <div class="row">
+                <div class="col col-sm-9">
+                    <h6>Expire Date</h6>
+                </div>
+                <div class="col col-sm-3">
+                    <h6>CVV</h6>
+                </div>
+            </div>
+            <div class="row">
+                <div class="col col-sm-9"><input class="form-control input" id="date" placeholder="MM/YY"></div>
+                <div class="col col-sm-3"><input class="form-control input" id="cvv" placeholder="xxx"></div>
+            </div><br>
+            <div class="row">
+                <div class="col col-sm-12"><button class="btn btn-primary button" onclick="Payment()">continue</button>
+                </div>
+            </div><br>
+        </div><br>
+        <div class="col-sm-4"></div>
+    </div>
+</body>
+<script>
+    const userid = sessionStorage.getItem("userid");
+    const userEmail = sessionStorage.getItem("email");
+    const uploadid = sessionStorage.getItem("uploadPhotoid");
+    const totalAmount = sessionStorage.getItem("totalAmount");
+    function performAjax(httpMethod, url, params) {
+        const myPromise = new Promise((resolve, reject) => {
+            var xhttp = new XMLHttpRequest();
+            xhttp.onreadystatechange = function () {
+                if (this.readyState == 4 && this.status == 200) {
+                    resolve(JSON.parse(this.responseText));
+                }
+                if (this.status == 500) {
+                    reject({ error: true, message: "ServerError" });
+                }
+                if (this.status == 404) {
+                    reject({ error: true, message: "Resource not found" });
+                }
+            };
+            xhttp.open(httpMethod, url, true);
+            xhttp.setRequestHeader("Content-Type", "application/json");
+            params ? xhttp.send(params) : xhttp.send();
+        });
+        return myPromise;
+    }
+
+    function getAmount() {
+        document.getElementById("totalAmount").value = totalAmount;
+    }
+
+    function Payment() {
+        const totalAmount = document.getElementById("totalAmount").value;
+        const cardtype = document.getElementById("credit").checked == true ? "Credit" : "Debit";
+        const cardHolderName = document.getElementById("cardHolderName").value;
+        const cardNumber = document.getElementById("cardNumber").value;
+        const cvv = document.getElementById("cvv").value;
+        const date = document.getElementById("date").value;
+        const addPromise = performAjax(
+            "POST", "http://localhost:1234/User/addpayment",
+            JSON.stringify({ user: userid, upload: uploadid, totalAmount, cardtype, cardHolderName, cardNumber, cvv, date, userEmail })
+        );
+        addPromise
+            .then(newList => {
+                alert("payment Succefully");
+                cancel();
+
+            })
+            .catch(err => {
+                alert(err.message);
+            });
+    }
+    function cancel() {
+        document.getElementById("credit").checked = "";
+        document.getElementById("cardHolderName").value = "";
+        document.getElementById("cardNumber").value = "";
+        document.getElementById("cvv").value = "";
+        document.getElementById("date").value = "";
+    }
+</script>
+
+</html>
